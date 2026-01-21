@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mosque Data Form</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0; padding: 0;
+            background: #f2f2f2;
+            font-family: "Times New Roman", Times, serif;
+            -webkit-print-color-adjust: exact;
+        }
+
+        .controls {
+            width: 210mm;
+            margin: 15px auto 10px auto;
+            text-align: right;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .controls button {
+            font-family: "Times New Roman", Times, serif;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        .btn-print { background-color: #008CBA; }
+        .btn-pdf { background-color: #f44336; }
+        .btn-xls { background-color: #4CAF50; }
+        .btn-jpg { background-color: #ff9800; }
+
+        .page {
+            width: 210mm;
+            height: 296mm; /* A4 */
+            margin: 0 auto 20px auto;
+            background: #ffffff;
+            padding: 12mm 15mm; /* Slightly reduced top/bottom padding to fit new fields */
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden; 
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 100px;
+            letter-spacing: 10px;
+            color: rgba(0, 0, 0, 0.04);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            font-size: 13px; /* Slightly smaller to fit content */
+            line-height: 1.1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 2px double #000;
+            padding-bottom: 5px;
+        }
+        header h1 { margin: 0; font-size: 22px; text-transform: uppercase; }
+        header h2 { margin: 2px 0 0 0; font-size: 14px; }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 13px;
+            text-transform: uppercase;
+            background-color: #eee;
+            border: 1px solid #000;
+            padding: 2px 6px;
+            margin-bottom: 6px;
+            margin-top: 4px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 15px;
+            row-gap: 4px;
+        }
+
+        .full-span { grid-column: 1 / -1; }
+
+        .form-group { width: 100%; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 1px;
+        }
+
+        .text-input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 3px 5px;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 13px;
+            border: 1px solid #000;
+            border-radius: 0;
+            background: transparent;
+        }
+        .form-group textarea { resize: none; height: 35px; }
+
+        .radio-group {
+            border: 1px solid #000;
+            padding: 3px 10px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: #fff;
+        }
+        .radio-option { display: flex; align-items: center; gap: 5px; }
+        .radio-option span { font-size: 12px; }
+
+        .multi-input { display: flex; align-items: center; gap: 2px; }
+        .cnic-part1 { width: 45px; text-align: center; }
+        .cnic-part2 { width: 75px; text-align: center; }
+        .cnic-part3 { width: 25px; text-align: center; }
+        .mobile-part1 { width: 45px; text-align: center; }
+        .mobile-part2 { width: 75px; text-align: center; }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            column-gap: 10px;
+            margin-top: 5px;
+        }
+        .image-group label { text-align: center; margin-bottom: 2px; }
+        .image-preview-container {
+            border: 1px solid #000;
+            height: 95px; /* Slightly shorter to fit new fields */
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f9f9f9;
+        }
+        .image-preview-container img { max-width: 100%; max-height: 100%; display: none; }
+        
+        .page-number {
+            position: absolute;
+            bottom: 5mm; right: 15mm;
+            font-size: 11px;
+        }
+
+        @media print {
+            .controls { display: none !important; }
+            .page { margin: 0; box-shadow: none; page-break-after: always; height: auto; min-height: 290mm; }
+            @page { size: A4 portrait; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls no-print">
+        <button type="button" class="btn-print" onclick="window.print()">Print Form</button>
+        <button type="button" class="btn-pdf" onclick="generatePDF()">Save PDF</button>
+        <button type="button" class="btn-xls" onclick="exportExcel()">Save Excel</button>
+        <button type="button" class="btn-jpg" onclick="saveAsJPG()">Save as JPG</button>
+    </div>
+
+    <!-- PAGE 1 -->
+    <div class="page" id="page1">
+        <div class="watermark">PINDIGHEB</div>
+        <div class="content">
+            <header>
+                <h1>Info About Mosque</h1>
+                <h2>Tehsil Pindigheb</h2>
+            </header>
+
+            <div class="section-title">Mosque Information</div>
+            <div class="grid-2">
+                <div class="form-group full-span">
+                    <label>1. Database Status</label>
+                    <div class="radio-group">
+                        <label class="radio-option"><input type="radio" name="db_status" value="Already In Database"> <span>Already In Database</span></label>
+                        <label class="radio-option"><input type="radio" name="db_status" value="New"> <span>New</span></label>
+                        <label class="radio-option"><input type="radio" name="db_status" value="Updated"> <span>Updated</span></label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="mosque-uid">2. Mosque UID</label>
+                    <input id="mosque-uid" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="sect">3. Sect</label>
+                    <input id="sect" type="text" class="text-input">
+                </div>
+                <div class="form-group full-span">
+                    <label for="mosque-name">4. Full Name of Mosque</label>
+                    <input id="mosque-name" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="established-since">5. Established Since (Year)</label>
+                    <input id="established-since" type="number" class="text-input numeric-only" placeholder="YYYY">
+                </div>
+                <div class="form-group full-span">
+                    <label for="mosque-address">6. Full Address of Mosque</label>
+                    <textarea id="mosque-address" class="text-input"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="coordinates">7. Long / Lat</label>
+                    <input id="coordinates" type="text" class="text-input" placeholder="e.g. 33.123, 72.123">
+                </div>
+                <div class="form-group">
+                    <label for="police-station">8. Police Station Concerned</label>
+                    <input id="police-station" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="mosque-area">9. Area of Mosque (Marlas)</label>
+                    <input id="mosque-area" type="number" class="text-input numeric-only">
+                </div>
+                <div class="form-group">
+                    <label for="prayer-hall-dim">10. Prayer Hall Dim. (sq. ft.)</label>
+                    <input id="prayer-hall-dim" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="courtyard-dim">11. Courtyard Dim. (sq. ft.)</label>
+                    <input id="courtyard-dim" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="bajamaat">12. Ba’Jamaat Namaz (5 times)</label>
+                    <select id="bajamaat" class="text-input">
+                        <option value=""></option><option value="Yes">Yes</option><option value="No">No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="juma">13. Namaz-e-Juma Held</label>
+                    <select id="juma" class="text-input">
+                        <option value=""></option><option value="Yes">Yes</option><option value="No">No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="avg-attendance">14. Avg Attendance (excl. Juma)</label>
+                    <input id="avg-attendance" type="number" class="text-input numeric-only">
+                </div>
+                <div class="form-group">
+                    <label for="madrisa-attached">15. Any Madrisa Attached?</label>
+                    <select id="madrisa-attached" class="text-input">
+                        <option value=""></option><option value="Yes">Yes</option><option value="No">No</option>
+                    </select>
+                </div>
+                <div class="form-group full-span">
+                    <label for="madrisa-name">16. Name of Attached Madrisa</label>
+                    <input id="madrisa-name" type="text" class="text-input">
+                </div>
+                <div class="form-group full-span">
+                    <label for="ownership">17. Ownership of Mosque</label>
+                    <input id="ownership" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="ablution">18. Ablution Area?</label>
+                    <select id="ablution" class="text-input">
+                        <option value=""></option><option value="Yes">Yes</option><option value="No">No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="toilet">19. Toilet Facility?</label>
+                    <select id="toilet" class="text-input">
+                        <option value=""></option><option value="Yes">Yes</option><option value="No">No</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="imam-residence">20. Imam Residence?</label>
+                    <select id="imam-residence" class="text-input">
+                        <option value=""></option><option value="Yes">Yes</option><option value="No">No</option>
+                    </select>
+                </div>
+            </div>
+            <div class="page-number">Page 1 of 2</div>
+        </div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="page" id="page2">
+        <div class="watermark">PINDIGHEB</div>
+        <div class="content">
+            <div style="text-align:center; font-size:12px; margin-bottom:5px; color:#666;">
+                Info About Mosque - Tehsil Pindigheb (Page 2)
+            </div>
+
+            <div class="section-title">Imam Information</div>
+            <div class="grid-2">
+                <div class="form-group full-span">
+                    <label for="imam-name">21. Full Name of Imam</label>
+                    <input id="imam-name" type="text" class="text-input">
+                </div>
+                <div class="form-group full-span">
+                    <label>22. CNIC Number of Imam</label>
+                    <div class="multi-input">
+                        <input id="imam-cnic-1" type="text" maxlength="5" class="text-input numeric-only cnic-part1">
+                        <span class="separator">-</span>
+                        <input id="imam-cnic-2" type="text" maxlength="7" class="text-input numeric-only cnic-part2">
+                        <span class="separator">-</span>
+                        <input id="imam-cnic-3" type="text" maxlength="1" class="text-input numeric-only cnic-part3">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cnic-issuance">23. CNIC Issuance Date</label>
+                    <input id="cnic-issuance" type="date" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="imam-dob">24. Date of Birth</label>
+                    <input id="imam-dob" type="date" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="education">25. Qualification</label>
+                    <input id="education" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label>26. Mobile Number</label>
+                    <div class="multi-input">
+                        <input id="imam-mobile-1" type="text" maxlength="4" class="text-input numeric-only mobile-part1" value="03">
+                        <span class="separator">-</span>
+                        <input id="imam-mobile-2" type="text" maxlength="7" class="text-input numeric-only mobile-part2">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="imam-since">27. Imam Since</label>
+                    <input id="imam-since" type="date" class="text-input">
+                </div>
+                <div class="form-group full-span">
+                    <label for="imam-temp-address">28. Temporary Address</label>
+                    <textarea id="imam-temp-address" class="text-input" style="height:30px;"></textarea>
+                </div>
+                <div class="form-group full-span">
+                    <label for="imam-perm-address">29. Permanent Address</label>
+                    <textarea id="imam-perm-address" class="text-input" style="height:30px;"></textarea>
+                </div>
+            </div>
+
+            <div class="section-title">Management & Bank Information</div>
+            <div class="grid-2">
+                <div class="form-group full-span">
+                    <label for="mmc-exists">30. Committee Exists?</label>
+                    <select id="mmc-exists" class="text-input">
+                        <option value=""></option><option value="Yes">Yes</option><option value="No">No</option>
+                    </select>
+                </div>
+
+                <!-- HEAD INFO -->
+                <div class="form-group">
+                    <label for="mmc-head">31. Head Name</label>
+                    <input id="mmc-head" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label>32. Head CNIC</label>
+                    <div class="multi-input">
+                        <input id="head-cnic-1" type="text" maxlength="5" class="text-input numeric-only cnic-part1">
+                        <span class="separator">-</span>
+                        <input id="head-cnic-2" type="text" maxlength="7" class="text-input numeric-only cnic-part2">
+                        <span class="separator">-</span>
+                        <input id="head-cnic-3" type="text" maxlength="1" class="text-input numeric-only cnic-part3">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>33. Head Mobile</label>
+                    <div class="multi-input">
+                        <input id="head-mobile-1" type="text" maxlength="4" class="text-input numeric-only mobile-part1" value="03">
+                        <span class="separator">-</span>
+                        <input id="head-mobile-2" type="text" maxlength="7" class="text-input numeric-only mobile-part2">
+                    </div>
+                </div>
+                
+                <!-- SECRETARY INFO -->
+                <div class="form-group">
+                    <label for="mmc-secretary">34. Secretary Name</label>
+                    <input id="mmc-secretary" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label>35. Secretary CNIC</label>
+                    <div class="multi-input">
+                        <input id="sec-cnic-1" type="text" maxlength="5" class="text-input numeric-only cnic-part1">
+                        <span class="separator">-</span>
+                        <input id="sec-cnic-2" type="text" maxlength="7" class="text-input numeric-only cnic-part2">
+                        <span class="separator">-</span>
+                        <input id="sec-cnic-3" type="text" maxlength="1" class="text-input numeric-only cnic-part3">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>36. Secretary Mobile</label>
+                    <div class="multi-input">
+                        <input id="sec-mobile-1" type="text" maxlength="4" class="text-input numeric-only mobile-part1" value="03">
+                        <span class="separator">-</span>
+                        <input id="sec-mobile-2" type="text" maxlength="7" class="text-input numeric-only mobile-part2">
+                    </div>
+                </div>
+
+                <!-- BANK INFO -->
+                <div class="form-group">
+                    <label for="form-receipt">37. Form Receipt Date</label>
+                    <input id="form-receipt" type="date" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="account-title">38. Bank Account Title</label>
+                    <input id="account-title" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="account-number">39. Account Number</label>
+                    <input id="account-number" type="text" class="text-input">
+                </div>
+                 <div class="form-group">
+                    <label for="phase">40. Phase</label>
+                    <input id="phase" type="text" class="text-input">
+                </div>
+            </div>
+
+            <div class="section-title">Imam Identification Images</div>
+            <div class="image-grid">
+                <div class="image-group">
+                    <label>CNIC Front</label>
+                    <div class="image-preview-container">
+                        <img id="cnic-front-preview" alt="Preview">
+                    </div>
+                    <input id="cnic-front-input" type="file" accept="image/*" class="no-print"
+                           onchange="handleImageUpload(this, 'cnic-front-preview')" style="font-size:10px; width:100%; margin-top:2px;">
+                </div>
+                <div class="image-group">
+                    <label>CNIC Back</label>
+                    <div class="image-preview-container">
+                        <img id="cnic-back-preview" alt="Preview">
+                    </div>
+                    <input id="cnic-back-input" type="file" accept="image/*" class="no-print"
+                           onchange="handleImageUpload(this, 'cnic-back-preview')" style="font-size:10px; width:100%; margin-top:2px;">
+                </div>
+                <div class="image-group">
+                    <label>Photograph</label>
+                    <div class="image-preview-container">
+                        <img id="imam-photo-preview" alt="Preview">
+                    </div>
+                    <input id="imam-photo-input" type="file" accept="image/*" class="no-print"
+                           onchange="handleImageUpload(this, 'imam-photo-preview')" style="font-size:10px; width:100%; margin-top:2px;">
+                </div>
+            </div>
+
+            <!-- OFFICIAL USE SECTION -->
+            <div class="section-title">Official Use</div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="official-name">41. Official Name</label>
+                    <input id="official-name" type="text" class="text-input">
+                </div>
+                <div class="form-group">
+                    <label for="official-designation">42. Designation</label>
+                    <input id="official-designation" type="text" class="text-input">
+                </div>
+            </div>
+            
+            <div class="page-number">Page 2 of 2</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Basic Helpers ---
+        document.querySelectorAll('.numeric-only').forEach(inp => {
+            inp.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+        });
+
+        function setupAutoTab(c, n, max) {
+            let curr = document.getElementById(c);
+            let next = document.getElementById(n);
+            if(curr && next) {
+                curr.addEventListener('input', function() {
+                    if(this.value.length >= max) { next.focus(); next.select(); }
+                });
+            }
+        }
+        // Imam
+        setupAutoTab('imam-cnic-1', 'imam-cnic-2', 5);
+        setupAutoTab('imam-cnic-2', 'imam-cnic-3', 7);
+        setupAutoTab('imam-mobile-1', 'imam-mobile-2', 4);
+        // Head
+        setupAutoTab('head-cnic-1', 'head-cnic-2', 5);
+        setupAutoTab('head-cnic-2', 'head-cnic-3', 7);
+        setupAutoTab('head-mobile-1', 'head-mobile-2', 4);
+        // Secretary
+        setupAutoTab('sec-cnic-1', 'sec-cnic-2', 5);
+        setupAutoTab('sec-cnic-2', 'sec-cnic-3', 7);
+        setupAutoTab('sec-mobile-1', 'sec-mobile-2', 4);
+
+        function handleImageUpload(input, previewId) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = document.getElementById(previewId);
+                    img.src = e.target.result; img.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // --- 2. Print & PDF ---
+        function generatePDF() {
+            let oldTitle = document.title;
+            let name = document.getElementById('imam-name').value || "MosqueForm";
+            document.title = name;
+            window.print();
+            setTimeout(() => document.title = oldTitle, 1000);
+        }
+
+        // --- 3. Save as JPG ---
+        function saveAsJPG() {
+            let rawName = document.getElementById('imam-name').value;
+            let filenameBase = rawName.trim().length > 0 ? rawName.trim() : "MosqueForm";
+            filenameBase = filenameBase.replace(/[^a-z0-9 ]/gi, '_');
+
+            window.scrollTo(0, 0);
+
+            html2canvas(document.getElementById('page1'), {
+                scale: 2, useCORS: true, backgroundColor: "#ffffff"
+            }).then(canvas => {
+                downloadCanvas(canvas, filenameBase + "(1).jpg");
+                setTimeout(() => {
+                    html2canvas(document.getElementById('page2'), {
+                        scale: 2, useCORS: true, backgroundColor: "#ffffff"
+                    }).then(canvas2 => {
+                        downloadCanvas(canvas2, filenameBase + "(2).jpg");
+                    });
+                }, 1000);
+            });
+        }
+
+        function downloadCanvas(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL("image/jpeg", 0.9);
+            link.click();
+        }
+
+        // --- 4. Excel Export ---
+        function exportExcel() {
+            const getVal = (id) => document.getElementById(id) ? document.getElementById(id).value : "";
+            const radio = document.querySelector('input[name="db_status"]:checked');
+            const dbStatus = radio ? radio.value : "";
+
+            const combineCNIC = (prefix) => `${getVal(prefix+'-cnic-1')}-${getVal(prefix+'-cnic-2')}-${getVal(prefix+'-cnic-3')}`;
+            const combineMob = (prefix) => `${getVal(prefix+'-mobile-1')}-${getVal(prefix+'-mobile-2')}`;
+
+            const data = [
+                ["Field", "Value"],
+                ["1. Database Status", dbStatus],
+                ["2. Mosque UID", getVal('mosque-uid')],
+                ["3. Sect", getVal('sect')],
+                ["4. Mosque Name", getVal('mosque-name')],
+                ["5. Established", getVal('established-since')],
+                ["6. Address", getVal('mosque-address')],
+                ["7. Coords", getVal('coordinates')],
+                ["8. Police Station", getVal('police-station')],
+                ["9. Area", getVal('mosque-area')],
+                ["10. Hall Dim", getVal('prayer-hall-dim')],
+                ["11. Court Dim", getVal('courtyard-dim')],
+                ["12. Ba'Jamaat", getVal('bajamaat')],
+                ["13. Juma", getVal('juma')],
+                ["14. Avg Att", getVal('avg-attendance')],
+                ["15. Madrisa?", getVal('madrisa-attached')],
+                ["16. Madrisa Name", getVal('madrisa-name')],
+                ["17. Ownership", getVal('ownership')],
+                ["18. Ablution", getVal('ablution')],
+                ["19. Toilet", getVal('toilet')],
+                ["20. Residence", getVal('imam-residence')],
+                ["21. Imam Name", getVal('imam-name')],
+                ["22. Imam CNIC", combineCNIC('imam')],
+                ["23. CNIC Issue", getVal('cnic-issuance')],
+                ["24. DOB", getVal('imam-dob')],
+                ["25. Qual", getVal('education')],
+                ["26. Mobile", combineMob('imam')],
+                ["27. Since", getVal('imam-since')],
+                ["28. Temp Addr", getVal('imam-temp-address')],
+                ["29. Perm Addr", getVal('imam-perm-address')],
+                ["30. MMC Exists", getVal('mmc-exists')],
+                ["31. MMC Head", getVal('mmc-head')],
+                ["32. Head CNIC", combineCNIC('head')],
+                ["33. Head Mobile", combineMob('head')],
+                ["34. MMC Sec", getVal('mmc-secretary')],
+                ["35. Sec CNIC", combineCNIC('sec')],
+                ["36. Sec Mobile", combineMob('sec')],
+                ["37. Receipt", getVal('form-receipt')],
+                ["38. Acct Title", getVal('account-title')],
+                ["39. Acct Num", getVal('account-number')],
+                ["40. Phase", getVal('phase')],
+                ["41. Official Name", getVal('official-name')],
+                ["42. Designation", getVal('official-designation')]
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Mosque Data");
+            let fname = "MosqueData";
+            if(getVal('imam-name')) fname = getVal('imam-name').replace(/[^a-z0-9]/gi, '_');
+            XLSX.writeFile(wb, fname + ".xlsx");
+        }
+    </script>
+</body>
+</html>
